@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>부동산 시그널 대시보드</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0a;color:#e5e5e5;font-family:'Pretendard Variable',-apple-system,sans-serif}
+.w{max-width:840px;margin:0 auto;padding:32px 18px 80px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.card{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:14px;padding:18px 20px;margin-bottom:10px;transition:all .3s}
+.card.up{background:linear-gradient(135deg,rgba(239,68,68,0.07),transparent);border-color:rgba(239,68,68,0.18)}
+.card.dn{background:linear-gradient(135deg,rgba(59,130,246,0.07),transparent);border-color:rgba(59,130,246,0.18)}
+.card.nt{background:linear-gradient(135deg,rgba(150,150,150,0.04),transparent);border-color:rgba(150,150,150,0.1)}
+.b{display:inline-flex;align-items:center;gap:4px;padding:3px 11px;border-radius:100px;font-size:11px;font-weight:700}
+.b.up{color:#ef4444;background:rgba(239,68,68,0.1)}.b.dn{color:#3b82f6;background:rgba(59,130,246,0.1)}.b.nt{color:#777;background:rgba(150,150,150,0.08)}
+.num{font-size:28px;font-weight:800;color:#f5f5f5;font-family:'Courier New',monospace;letter-spacing:-1px}
+.chg-up{color:#ef4444;font-weight:700;font-family:monospace;font-size:14px}
+.chg-dn{color:#3b82f6;font-weight:700;font-family:monospace;font-size:14px}
+.btn{border:none;border-radius:10px;padding:11px 22px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .2s}
+.btn:active{opacity:.7}
+.btn-r{background:#dc2626;color:#fff}
+.btn-d{background:#161616;color:#555;border:1px solid #252525}
+.sp{width:14px;height:14px;border:2px solid #252525;border-top-color:#ef4444;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle}
+.flow{display:flex;align-items:center;justify-content:center;gap:4px;flex-wrap:wrap;margin-bottom:22px;padding:10px 14px;background:rgba(255,255,255,0.015);border-radius:10px}
+.flow span{font-size:11px;color:#666;font-weight:600;padding:2px 6px;background:rgba(255,255,255,0.02);border-radius:4px;white-space:nowrap}
+.flow .a{font-size:13px;color:#2a2a2a;font-weight:400;padding:0;background:none}
+.mi{width:80px;padding:7px 9px;font-size:16px;font-weight:700;color:#f5f5f5;background:rgba(0,0,0,0.4);border:1px solid #333;border-radius:8px;font-family:monospace;outline:none}
+.mi:focus{border-color:#ef4444}
+.lb{background:#0c0c0c;border:1px solid #1a1a1a;border-radius:10px;padding:14px;margin-bottom:18px;max-height:220px;overflow:auto;display:none}
+.lb.show{display:block}
+.lb div{font-size:10px;font-family:monospace;padding:1px 0;color:#444}
+.lb .e{color:#ef4444}.lb .g{color:#22c55e}
+.overall{border-radius:16px;padding:22px 26px;margin-bottom:22px}
+.sbar{display:flex;gap:3px;margin-bottom:8px}.sbar div{height:7px;border-radius:4px;flex:1;opacity:.65}
+a{color:#666;text-decoration:none}
+.sec{font-size:13px;font-weight:700;color:#555;margin-bottom:10px;display:flex;align-items:center;gap:7px}
+.dot{width:9px;height:9px;border-radius:5px;display:inline-block}
+.sub{font-size:10px;color:#555;font-family:monospace}
+.cmt{font-size:12px;color:#999;margin-top:7px;line-height:1.5}
+.meta{font-size:11px;color:#444;margin-top:2px}
+</style>
+</head>
+<body>
+<div class="w">
+<div style="margin-bottom:26px">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+    <span style="font-size:20px">🏗️</span>
+    <span style="font-size:10px;color:#ef4444;background:rgba(239,68,68,0.1);padding:2px 9px;border-radius:100px;font-weight:800;letter-spacing:.05em">LIVE API</span>
+  </div>
+  <h1 style="font-size:28px;font-weight:900;color:#f5f5f5;letter-spacing:-.02em">부동산 시그널 대시보드</h1>
+  <p style="font-size:12px;color:#444;margin-top:5px">한국은행 ECOS 실시간 연동 · 판교불패 프레임워크</p>
+</div>
+
+<div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;align-items:center">
+  <button class="btn btn-r" onclick="fetchAll()">🔄 전체 새로고침</button>
+  <button class="btn btn-d" onclick="document.getElementById('lb').classList.toggle('show')">📋 로그 (<span id="lc">0</span>)</button>
+  <span id="ts" style="font-size:11px;color:#333;font-family:monospace"></span>
+</div>
+<div id="lb" class="lb"></div>
+<div id="ov" style="display:none"></div>
+
+<div class="flow">
+  <span>🇺🇸미국채</span><span class="a">→</span><span>🇰🇷한국채</span><span class="a">→</span>
+  <span>🏦주담대</span><span class="a">→</span><span>💰대출수요</span><span class="a">→</span>
+  <span>📊심리</span><span class="a">→</span><span>🏢가격</span>
+</div>
+
+<div class="sec"><span class="dot" style="background:#22c55e"></span>한국은행 ECOS API (실시간)</div>
+<div id="ec"></div>
+
+<div class="sec" style="margin-top:26px"><span class="dot" style="background:#f59e0b"></span>수동 입력 지표</div>
+<div id="mc">
+  <div class="card nt" id="c-us">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px">🇺🇸</span><div><div style="font-size:15px;font-weight:700;color:#eee">미국 국채 10년 금리</div><div class="sub"><a href="https://kr.investing.com/rates-bonds/u.s.-10-year-bond-yield" target="_blank">↗ investing.com</a></div></div></div>
+      <span id="b-us" class="b nt">⚪ 보합</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center"><input class="mi" id="i-us" value="4.25" oninput="um()"><span style="font-size:14px;color:#555">%</span></div>
+    <div id="t-us" class="cmt"></div>
+  </div>
+  <div class="card nt" id="c-fed">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px">🏛️</span><div><div style="font-size:15px;font-weight:700;color:#eee">Fed Watch 인하 전망</div><div class="sub"><a href="https://www.cmegroup.com/markets/interest-rates/cme-fedwatch-tool.html" target="_blank">↗ CME FedWatch</a></div></div></div>
+      <span id="b-fed" class="b nt">⚪ 보합</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center"><input class="mi" id="i-fed" value="2" style="width:60px" oninput="um()"><span style="font-size:14px;color:#555">회 인하</span></div>
+    <div id="t-fed" class="cmt"></div>
+  </div>
+  <div class="card nt" id="c-sv">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px">🏢</span><div><div style="font-size:15px;font-weight:700;color:#eee">서울 아파트 주간 동향</div><div class="sub"><a href="https://www.reb.or.kr" target="_blank">↗ 한국부동산원</a></div></div></div>
+      <span id="b-sv" class="b nt">⚪ 보합</span>
+    </div>
+    <div style="display:flex;gap:14px">
+      <div><div style="font-size:10px;color:#555;margin-bottom:3px">매매(%)</div><input class="mi" id="i-sp" value="0.05" style="width:70px" oninput="um()"></div>
+      <div><div style="font-size:10px;color:#555;margin-bottom:3px">전세(%)</div><input class="mi" id="i-sj" value="0.08" style="width:70px" oninput="um()"></div>
+    </div>
+    <div id="t-sv" class="cmt"></div>
+  </div>
+</div>
+
+<div style="margin-top:30px;padding:16px 20px;background:rgba(255,255,255,0.015);border-radius:12px;font-size:11px;color:#333;line-height:1.8">
+  <strong style="color:#555">판교불패 프레임워크</strong>: 미국채금리 → 한국채금리 → 주담대금리 → 대출수요 → 매수심리 → 가격<br>
+  <strong style="color:#555">데이터 소스</strong>: ECOS 817Y002(국고채), 722Y001(기준금리), 511Y002(CSI), 005Y003(대출)
+</div>
+</div>
+
+<script>
+const PROXY = "https://script.google.com/macros/s/AKfycbwUwmdpJXPCu7Od_UGffmBkV3L9jNF3-QCQNqkPjK2XS2bAvZtqf_hsGffYc4yOQxO0Ng/exec";
+const AK = "E97RPZI5Z54P71Y7EW1I";
+const sigs = {};
+
+function L(m) {
+  const b = document.getElementById("lb");
+  const t = new Date().toLocaleTimeString("ko-KR");
+  const c = m.includes("✗") ? "e" : m.includes("✓") ? "g" : "";
+  b.innerHTML += `<div class="${c}">${t} ${m}</div>`;
+  b.scrollTop = b.scrollHeight;
+  document.getElementById("lc").textContent = b.children.length;
+}
+
+function ds(ago, f) {
+  const d = new Date(); d.setDate(d.getDate() - ago);
+  const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,"0"), dd = String(d.getDate()).padStart(2,"0");
+  return f === "M" ? `${y}${m}` : `${y}${m}${dd}`;
+}
+
+async function ecos(stat, cyc, s, e, item) {
+  const raw = `https://ecos.bok.or.kr/api/StatisticSearch/${AK}/json/kr/1/100/${stat}/${cyc}/${s}/${e}/${item}`;
+  const url = PROXY + "?url=" + encodeURIComponent(raw);
+  L(`요청: ${stat}/${item}`);
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`HTTP ${r.status} ${r.statusText}`);
+  const text = await r.text();
+  L(`응답 크기: ${text.length}자`);
+  let d;
+  try { d = JSON.parse(text); } catch(e) {
+    L(`JSON 파싱 실패: ${text.substring(0, 100)}`);
+    throw new Error("응답이 JSON이 아님");
+  }
+  if (d.StatisticSearch && d.StatisticSearch.row) return d.StatisticSearch.row;
+  if (d.RESULT) throw new Error(d.RESULT.MESSAGE || d.RESULT.CODE);
+  throw new Error("알 수 없는 응답: " + text.substring(0, 80));
+}
+
+// ═══ 지표 정의 ═══
+const SRC = [
+  { id:"kr3y", t:"국고채 3년 금리", ic:"🇰🇷", u:"%", sub:"817Y002 · 일별 · ⭐ 핵심 선행지표",
+    fn:()=>ecos("817Y002","D",ds(90),ds(0),"010200000"),
+    sig(v,p){if(v>3.2)return{s:"dn",c:`${v}% → 높음. 주담대 금리 상승 압력 강함. 매수 부담 ↑`};if(v<2.5)return{s:"up",c:`${v}% → 낮음. 주담대 금리 하락 기대. 매수 환경 개선`};return{s:"nt",c:`${v}% → 중립 구간. 급격한 변동 모니터링 필요`}}},
+  { id:"kr10y", t:"국고채 10년 금리", ic:"🇰🇷", u:"%", sub:"817Y002 · 일별",
+    fn:()=>ecos("817Y002","D",ds(90),ds(0),"010210000"),
+    sig(v,p){if(v>3.5)return{s:"dn",c:`${v}% → 장기금리 부담. 고금리 장기화 우려`};if(v<2.8)return{s:"up",c:`${v}% → 장기금리 안정`};return{s:"nt",c:`${v}% → 중립`}}},
+  { id:"base", t:"한은 기준금리", ic:"🏛️", u:"%", sub:"722Y001 · 월별",
+    fn:()=>ecos("722Y001","M",ds(400,"M"),ds(0,"M"),"0101000"),
+    sig(v,p){if(p!==null&&v<p)return{s:"up",c:`${v}% ← ${p}%에서 인하. 부동산 호재`};if(p!==null&&v>p)return{s:"dn",c:`${v}% ← ${p}%에서 인상. 부동산 악재`};return{s:"nt",c:`${v}% 동결 유지`}}},
+  { id:"csi", t:"주택가격전망 CSI", ic:"📊", u:"", sub:"511Y002 · 월별",
+    fn:()=>ecos("511Y002","M",ds(400,"M"),ds(0,"M"),"FMFB"),
+    sig(v,p){const d=p!==null?v-p:0;const dt=p!==null?` (전월비 ${d>0?"+":""}${d.toFixed(0)})`:"";
+      if(v>115)return{s:"up",c:`CSI ${v}${dt} → 상승 기대 강함`};
+      if(v>100&&d<-10)return{s:"dn",c:`CSI ${v}${dt} → 급락 추세! 심리 급냉`};
+      if(v>100)return{s:"nt",c:`CSI ${v}${dt} → 약한 상승 기대`};
+      if(v<95)return{s:"dn",c:`CSI ${v}${dt} → 하락 전망 우세`};
+      return{s:"nt",c:`CSI ${v}${dt} → 상승/하락 팽팽`}}},
+  { id:"mort", t:"주택담보대출 잔액", ic:"🏠", u:"십억", sub:"005Y003 · 월별",
+    fn:()=>ecos("005Y003","M",ds(120,"M"),ds(0,"M"),"BECBLA02B"),
+    sig(v,p){if(p===null)return{s:"nt",c:"이전 데이터 없음"};const ch=v-p;const ct=(ch/1000).toFixed(1);
+      if(ch>500)return{s:"up",c:`전월비 +${ct}조 증가 → 시장에 돈 유입`};
+      if(ch<-500)return{s:"dn",c:`전월비 ${ct}조 감소 → 대출 회수/규제 효과`};
+      return{s:"nt",c:`전월비 ${ch>0?"+":""}${ct}조 → 보합`}}},
+];
+
+function bh(s){return s==="up"?"🔴 상승":s==="dn"?"🔵 하락":"⚪ 보합"}
+
+function cardH(src, res, err, loading) {
+  const s = res?.s || "";
+  const cls = s === "up" ? "up" : s === "dn" ? "dn" : s === "nt" ? "nt" : "";
+  const d = src._d;
+  let body = "";
+
+  if (loading) {
+    body = `<div style="display:flex;align-items:center;gap:8px;padding:8px 0"><span class="sp"></span><span style="font-size:13px;color:#555">ECOS API 조회 중...</span></div>`;
+  } else if (err) {
+    body = `<div style="font-size:12px;color:#ef4444;padding:6px 0">⚠ ${err}</div>`;
+  } else if (d) {
+    const diff = d.prev !== null ? (d.value - d.prev).toFixed(2) : null;
+    const isUp = diff && parseFloat(diff) > 0;
+    const chText = d.change !== null ? ` · 증감: ${(d.change/1000).toFixed(1)}조` : "";
+    body = `<div>
+      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:4px">
+        <span class="num">${d.raw}${src.u ? `<span style="font-size:14px;color:#555;margin-left:2px">${src.u}</span>` : ""}</span>
+        ${diff ? `<span class="${isUp ? "chg-up" : "chg-dn"}">${isUp ? "▲" : "▼"} ${Math.abs(parseFloat(diff))}</span>` : ""}
+      </div>
+      <div class="meta">기준일: ${d.date}${d.prev !== null ? ` · 이전: ${d.prev}` : ""}${chText}</div>
+      ${res ? `<div class="cmt">${res.c}</div>` : ""}
+    </div>`;
+  } else {
+    body = `<div class="meta">데이터 없음</div>`;
+  }
+
+  return `<div class="card ${cls}" id="cd-${src.id}">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:22px">${src.ic}</span>
+        <div><div style="font-size:15px;font-weight:700;color:#eee">${src.t}</div><div class="sub">${src.sub}</div></div>
+      </div>
+      ${res ? `<span class="b ${cls}">${bh(s)}</span>` : ""}
+    </div>
+    ${body}
+  </div>`;
+}
+
+async function fetchSrc(src) {
+  const ec = document.getElementById("ec");
+  const el = document.getElementById(`cd-${src.id}`);
+  if (el) el.outerHTML = cardH(src, null, null, true);
+  else ec.innerHTML += cardH(src, null, null, true);
+
+  try {
+    const rows = await src.fn();
+    L(`[${src.t}] ✓ ${rows.length}건 수신`);
+    if (!rows.length) {
+      document.getElementById(`cd-${src.id}`).outerHTML = cardH(src, null, "해당 기간 데이터 없음");
+      return;
+    }
+    const last = rows[rows.length - 1];
+    const prev = rows.length > 1 ? rows[rows.length - 2] : null;
+    const v = parseFloat(last.DATA_VALUE), pv = prev ? parseFloat(prev.DATA_VALUE) : null;
+    src._d = { value: v, prev: pv, date: last.TIME, raw: last.DATA_VALUE, change: pv !== null ? v - pv : null };
+    const res = src.sig(v, pv);
+    sigs[src.id] = res;
+    document.getElementById(`cd-${src.id}`).outerHTML = cardH(src, res);
+    L(`[${src.t}] → ${v} (${res.s})`);
+  } catch (e) {
+    L(`[${src.t}] ✗ ${e.message}`);
+    document.getElementById(`cd-${src.id}`).outerHTML = cardH(src, null, e.message);
+  }
+}
+
+function um() {
+  const us = parseFloat(document.getElementById("i-us").value);
+  const fc = parseFloat(document.getElementById("i-fed").value);
+  const sp = parseFloat(document.getElementById("i-sp").value);
+
+  function set(id, s, c) {
+    const cls = s === "up" ? "up" : s === "dn" ? "dn" : "nt";
+    sigs[id] = { s, c };
+    document.getElementById("b-" + id).className = "b " + cls;
+    document.getElementById("b-" + id).textContent = bh(s);
+    document.getElementById("t-" + id).textContent = c;
+    document.getElementById("c-" + id).className = "card " + cls;
+  }
+
+  if (!isNaN(us)) {
+    if (us > 4.5) set("us", "dn", `미국채 ${us}% → 높음. 한국 금리인하 여력 제한. 주담대 하방 경직`);
+    else if (us < 3.8) set("us", "up", `미국채 ${us}% → 낮음. 글로벌 금리인하 기대 = 부동산 호재`);
+    else set("us", "nt", `미국채 ${us}% → 중립. 한미 금리차 주시 필요`);
+  }
+  if (!isNaN(fc)) {
+    if (fc >= 3) set("fed", "up", `연내 ${fc}회 인하 전망 → 강한 금리인하 기대 = 부동산 호재`);
+    else if (fc === 0) set("fed", "dn", `인하 전망 없음 → 고금리 장기화 = 부동산 악재`);
+    else set("fed", "nt", `연내 ${fc}회 인하 → 제한적. 한미 금리차 고려 시 한은 인하 여력 제한`);
+  }
+  if (!isNaN(sp)) {
+    if (sp > 0.05) set("sv", "up", `서울 매매 +${sp}% → 뚜렷한 상승. 공급부족 효과`);
+    else if (sp < -0.05) set("sv", "dn", `서울 매매 ${sp}% → 하락 전환. 규제 효과 가시화`);
+    else set("sv", "nt", `서울 매매 ${sp > 0 ? "+" : ""}${sp}% → 보합 횡보`);
+  }
+  renderOv();
+}
+
+function renderOv() {
+  const vs = Object.values(sigs).filter(v => v && v.s);
+  if (!vs.length) { document.getElementById("ov").style.display = "none"; return; }
+  const cn = { up: 0, dn: 0, nt: 0 };
+  vs.forEach(v => cn[v.s]++);
+  const top = Object.entries(cn).sort((a, b) => b[1] - a[1])[0][0];
+  const col = { up: "#ef4444", dn: "#3b82f6", nt: "#777" };
+  const bg = { up: "rgba(239,68,68,0.07)", dn: "rgba(59,130,246,0.07)", nt: "rgba(150,150,150,0.04)" };
+  const em = { up: "🔴", dn: "🔵", nt: "⚪" };
+  const lb = { up: "상승 우세", dn: "하락 우세", nt: "혼조세" };
+  const bar = vs.map(v => `<div style="background:${col[v.s]}"></div>`).join("");
+
+  document.getElementById("ov").style.display = "block";
+  document.getElementById("ov").innerHTML = `
+    <div class="overall" style="background:linear-gradient(135deg,${bg[top]},rgba(0,0,0,0.3));border:1px solid ${col[top]}30">
+      <div style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px">종합 시그널</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+        <span style="font-size:32px">${em[top]}</span>
+        <span style="font-size:26px;font-weight:800;color:${col[top]}">${lb[top]}</span>
+      </div>
+      <div class="sbar">${bar}</div>
+      <div style="font-size:12px;color:#666">${vs.length}개 지표 분석 · 🔴상승 ${cn.up} · 🔵하락 ${cn.dn} · ⚪보합 ${cn.nt}</div>
+    </div>`;
+}
+
+async function fetchAll() {
+  L("=== 전체 조회 시작 ===");
+  document.getElementById("ec").innerHTML = "";
+  for (const src of SRC) {
+    await fetchSrc(src);
+    await new Promise(r => setTimeout(r, 600));
+  }
+  document.getElementById("ts").textContent = new Date().toLocaleTimeString("ko-KR") + " 업데이트";
+  L("=== 전체 조회 완료 ===");
+  um();
+}
+
+window.addEventListener("DOMContentLoaded", () => { um(); fetchAll(); });
+</script>
+</body>
+</html>
